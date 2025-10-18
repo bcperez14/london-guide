@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>London Guide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .download-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        
+        .download-btn:hover {
+            background: #45a049;
+        }
+        
+        #map {
+            height: calc(100vh - 180px);
+            width: 100%;
+        }
+        
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 250px;
+        }
+        
+        .legend h4 {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 0 3px rgba(0,0,0,0.3);
+        }
+        
+        .leaflet-popup-content {
+            margin: 15px;
+            min-width: 200px;
+        }
+        
+        .popup-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+        
+        .popup-category {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .popup-description {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .popup-address {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .popup-website {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .popup-website a {
+            color: #4285f4;
+            text-decoration: none;
+        }
+        
+        .popup-website a:hover {
+            text-decoration: underline;
+        }
+        
+        .popup-rating {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .popup-google {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+        
+        .google-link {
+            display: inline-block;
+            background: #4285f4;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        
+        .google-link:hover {
+            background: #357ae8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>London Guide</h1>
+        <p>Explore landmarks, cultural venues, dining, fashion & more</p>
+        <button class="download-btn" onclick="downloadMap()">Download Map as Image</button>
+    </div>
+    <div id="map"></div>
+
+    <script>
+        const map = L.map('map').setView([51.5074, -0.1278], 12);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        const colors = {
+            landmarks: '#8B4513',
+            culture: '#9C27B0',
+            arts: '#E91E63',
+            dining: '#FF5722',
+            shopping: '#FFC107',
+            fashion: '#00BCD4'
+        };
+
+        const locations = [
+            // Iconic Landmarks
+            {name: 'Buckingham Palace', lat: 51.5014, lng: -0.1419, category: 'landmarks', description: 'Official London residence of the British monarch', address: 'London SW1A 1AA', website: 'https://www.rct.uk/visit/buckingham-palace', googleMaps: 'https://maps.app.goo.gl/ArB5zDhcYkfyJUfR8'},
+            {name: 'Tower of London', lat: 51.5081, lng: -0.0759, category: 'landmarks', description: 'Historic fortress with Crown Jewels', address: 'Tower of London, London EC3N 4AB', website: 'https://www.hrp.org.uk/tower-of-london/', googleMaps: 'https://maps.app.goo.gl/5GVFkR7VAiKQBPaP8'},
+            {name: 'Tower Bridge', lat: 51.5055, lng: -0.0754, category: 'landmarks', description: 'Iconic Victorian bridge', address: 'Tower Bridge Rd, London SE1 2UP', website: 'https://www.towerbridge.org.uk/', googleMaps: 'https://maps.app.goo.gl/EG9yvFzmHd1HoJg19'},
+            {name: 'St. Paul\'s Cathedral', lat: 51.5138, lng: -0.0984, category: 'landmarks', description: 'Baroque masterpiece by Sir Christopher Wren', address: 'St. Paul\'s Churchyard, London EC4M 8AD', website: 'https://www.stpauls.co.uk/', googleMaps: 'https://maps.app.goo.gl/e1Q8CkE9JYnohHoj6'},
+            {name: 'Westminster Abbey', lat: 51.4994, lng: -0.1273, category: 'landmarks', description: 'Historic site of royal coronations', address: '20 Deans Yd, London SW1P 3PA', website: 'https://www.westminster-abbey.org/', googleMaps: 'https://maps.app.goo.gl/4YdKP9t2oviMKaWH8'},
+            {name: 'Houses of Parliament', lat: 51.4995, lng: -0.1248, category: 'landmarks', description: 'Center of British government', address: 'Westminster, London SW1A 0AA', website: 'https://www.parliament.uk/', googleMaps: 'https://maps.app.goo.gl/cY8ED96nnq7oK4WE6'},
+            
+            // Cultural Venues
+            {name: 'Brixton', lat: 51.4618, lng: -0.1134, category: 'culture', description: 'Historic heart of African & Caribbean communities. Home to Black Cultural Archives', address: 'Brixton, London SW2', website: 'https://blackculturalarchives.org/', googleMaps: 'https://maps.app.goo.gl/WyF8ZYCqmY34XLEY7'},
+            {name: 'Brixton Market', lat: 51.4627, lng: -0.1145, category: 'culture', description: 'Vibrant market showcasing Caribbean and African culture', address: 'Electric Ave, London SW9 8JX', website: 'https://brixtonmarket.net/', googleMaps: 'https://maps.app.goo.gl/9z7yncBbHWqJkPR36'},
+            {name: 'Notting Hill', lat: 51.5093, lng: -0.1957, category: 'culture', description: 'Home of Notting Hill Carnival with deep Caribbean heritage', address: 'Notting Hill, London W11', googleMaps: 'https://maps.app.goo.gl/KEGzcQ9RZY4JCLyv6'},
+            {name: 'The Africa Centre', lat: 51.5033, lng: -0.0977, category: 'culture', description: 'Hub for contemporary African culture in Southwark', address: '66 Great Suffolk St, London SE1 0BL', website: 'https://africacentre.net/', googleMaps: 'https://maps.app.goo.gl/HT83QNMjpKkujA4Z8'},
+            {name: 'Somerset House', lat: 51.5111, lng: -0.1172, category: 'culture', description: 'Jennie Baptiste: Rhythm and Roots exhibition', address: 'Strand, London WC2R 1LA', website: 'https://www.somersethouse.org.uk/', googleMaps: 'https://maps.app.goo.gl/h97kNCfAD5oSniQW6'},
+            
+            // Arts & Museums
+            {name: 'British Museum', lat: 51.5194, lng: -0.1270, category: 'arts', description: 'World-renowned collection with curator-led tours', address: 'Great Russell St, London WC1B 3DG', website: 'https://www.britishmuseum.org/', googleMaps: 'https://maps.app.goo.gl/tDimJ4mSKdxnLe7p7'},
+            {name: 'National Gallery', lat: 51.5089, lng: -0.1283, category: 'arts', description: 'Iconic art museum with guided experiences', address: 'Trafalgar Square, London WC2N 5DN', website: 'https://www.nationalgallery.org.uk/', googleMaps: 'https://maps.app.goo.gl/w6rRysMyPRGJfGmt7'},
+            {name: 'Tate Modern', lat: 51.5076, lng: -0.0994, category: 'arts', description: 'Contemporary art gallery on the South Bank', address: 'Bankside, London SE1 9TG', website: 'https://www.tate.org.uk/visit/tate-modern', googleMaps: 'https://maps.app.goo.gl/9eRsKLseTxhjKycm9'},
+            {name: 'Royal Opera House', lat: 51.5129, lng: -0.1222, category: 'arts', description: 'World-class opera & ballet in Covent Garden', address: 'Bow St, London WC2E 9DD', website: 'https://www.roh.org.uk/', googleMaps: 'https://maps.app.goo.gl/6G8xogbznacPRA7t5'},
+            {name: 'Shakespeare\'s Globe Theatre', lat: 51.5081, lng: -0.0972, category: 'arts', description: 'Authentic Shakespearean theatre experience', address: '21 New Globe Walk, London SE1 9DT', website: 'https://www.shakespearesglobe.com/', googleMaps: 'https://maps.app.goo.gl/PGh7cXoSDSB9drrN7'},
+            {name: 'Royal Academy of Arts', lat: 51.5094, lng: -0.1395, category: 'arts', description: 'Kerry James Marshall exhibit - Black representation in Western art', address: 'Burlington House, Piccadilly, London W1J 0BD', website: 'https://www.royalacademy.org.uk/', googleMaps: 'https://maps.app.goo.gl/1YLSpHjWnUH5wmdr8'},
+            {name: 'Southbank Centre', lat: 51.5056, lng: -0.1147, category: 'arts', description: 'Dynamic Black History Month events and programming', address: 'Belvedere Rd, London SE1 8XX', website: 'https://www.southbankcentre.co.uk/', googleMaps: 'https://maps.app.goo.gl/BRsqaLcRH3d4NMqB9'},
+            {name: 'British Library', lat: 51.5299, lng: -0.1270, category: 'arts', description: 'Special exhibitions exploring Black history', address: '96 Euston Rd, London NW1 2DB', website: 'https://www.bl.uk/', googleMaps: 'https://maps.app.goo.gl/6PWZX9MGbwLLVPLCA'},
+            {name: 'Kings Place', lat: 51.5356, lng: -0.1231, category: 'arts', description: 'Classically Black - celebrating Black classical musicians', address: '90 York Way, London N1 9AG', website: 'https://www.kingsplace.co.uk/', googleMaps: 'https://maps.app.goo.gl/gfkeihbVhE1Z2jQ9A'},
+            
+            // Fine Dining
+            {name: 'Ikoyi', lat: 51.5085, lng: -0.1180, category: 'dining', description: 'Two Michelin stars - West African flavours ⭐⭐ | £100+', rating: '4.5', address: '180 Strand, London WC2R 1EA', website: 'https://www.ikoyilondon.com/', googleMaps: 'https://maps.app.goo.gl/Z6EZoTEyHhsDvsFp6'},
+            {name: 'Akoko', lat: 51.5210, lng: -0.1371, category: 'dining', description: 'One Michelin star - Sophisticated West African ⭐ | £100+', rating: '4.8', address: '21 Berners St, London W1T 3LP', website: 'https://www.akokorestaurant.com/', googleMaps: 'https://maps.app.goo.gl/PRZqryAYvdkj8Ske9'},
+            {name: 'Chishuru', lat: 51.5183, lng: -0.1392, category: 'dining', description: 'One Michelin star - Contemporary West African ⭐ | £100+', rating: '4.5', address: '3 Great Titchfield St, London W1W 8AX', website: 'https://www.chishuru.com/', googleMaps: 'https://maps.app.goo.gl/PShnGjZFbNtg88zRA'},
+            {name: 'Stork', lat: 51.5104, lng: -0.1423, category: 'dining', description: 'Pan-African dining in Mayfair | £100+', rating: '4.4', address: '13-14 Cork St, London W1S 3NS', website: 'https://www.storkrestaurant.com/', googleMaps: 'https://maps.app.goo.gl/y1DSG4M6BYuPVA3q7'},
+            {name: 'Cottons Restaurant (Notting Hill)', lat: 51.5143, lng: -0.1988, category: 'dining', description: 'Afro-Caribbean cuisine - UK\'s largest rum collection', address: '55 Portobello Rd, London W11 3DB', website: 'https://cottons-restaurant.co.uk/', googleMaps: 'https://maps.app.goo.gl/iA9Yte48P6NVcYyr6'},
+            {name: 'Cottons Restaurant (Camden)', lat: 51.5394, lng: -0.1430, category: 'dining', description: 'Afro-Caribbean cuisine with rum masterclasses', address: '55 Chalk Farm Rd, London NW1 8AN', website: 'https://cottons-restaurant.co.uk/', googleMaps: 'https://maps.app.goo.gl/6C3fxYtgsvsSg9VP9'},
+            
+            // Shopping & Beauty
+            {name: 'Dark Sugars (Brick Lane)', lat: 51.5206, lng: -0.0712, category: 'shopping', description: 'Artisanal West African chocolates - Cocoa House', address: '141 Brick Ln, London E1 6SB', website: 'https://www.darksugars.co.uk/', googleMaps: 'https://maps.app.goo.gl/inoccGqVSbHD763m8'},
+            
+            // Fashion
+            {name: 'Ozwald Boateng', lat: 51.5120, lng: -0.1408, category: 'fashion', description: 'Bespoke tailoring on Savile Row', address: '30 Savile Row, London W1S 3PT', website: 'https://ozwaldboateng.co.uk/', googleMaps: 'https://maps.app.goo.gl/axqkpNVnBM2oNrrH7'},
+            {name: 'Casely-Hayford', lat: 51.5074, lng: -0.1278, category: 'fashion', description: 'Traditional tailoring with modern design', website: 'https://www.casely-hayford.com/', googleMaps: 'https://maps.app.goo.gl/SZMt5mPa2h5Zk1vn7'}
+        ];
+
+        function createIcon(color) {
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+        }
+
+        locations.forEach(location => {
+            const icon = createIcon(colors[location.category]);
+            const marker = L.marker([location.lat, location.lng], {icon: icon}).addTo(map);
+            
+            const categoryLabel = location.category.charAt(0).toUpperCase() + location.category.slice(1);
+            const categoryColor = colors[location.category];
+            
+            let popupContent = `
+                <div class="popup-title">${location.name}</div>
+                <div class="popup-category" style="background-color: ${categoryColor}; color: white;">${categoryLabel}</div>
+                <div class="popup-description">${location.description}</div>
+            `;
+            
+            if (location.address) {
+                popupContent += `<div class="popup-address">📍 ${location.address}</div>`;
+            }
+            
+            if (location.website) {
+                popupContent += `<div class="popup-website">🌐 <a href="${location.website}" target="_blank">Visit Website</a></div>`;
+            }
+            
+            if (location.rating) {
+                popupContent += `<div class="popup-rating">Rating: ${location.rating}/5</div>`;
+            }
+            
+            if (location.googleMaps) {
+                popupContent += `
+                    <div class="popup-google">
+                        <a href="${location.googleMaps}" target="_blank" class="google-link">
+                            📍 View on Google Maps
+                        </a>
+                    </div>
+                `;
+            }
+            
+            marker.bindPopup(popupContent);
+        });
+
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = '<h4>Categories</h4>';
+            
+            const categories = [
+                {name: 'Landmarks', color: colors.landmarks},
+                {name: 'Black Culture', color: colors.culture},
+                {name: 'Arts & Museums', color: colors.arts},
+                {name: 'Fine Dining', color: colors.dining},
+                {name: 'Shopping & Beauty', color: colors.shopping},
+                {name: 'Fashion', color: colors.fashion}
+            ];
+            
+            categories.forEach(cat => {
+                div.innerHTML += `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: ${cat.color};"></div>
+                        <span>${cat.name}</span>
+                    </div>
+                `;
+            });
+            
+            return div;
+        };
+        legend.addTo(map);
+
+        function downloadMap() {
+            const mapElement = document.getElementById('map');
+            html2canvas(mapElement, {
+                useCORS: true,
+                scale: 2
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'london-guide-map.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        function getDirections(lat, lng, name) {
+            // Check if geolocation is available
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        // Open Google Maps with directions from current location
+                        const url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${lat},${lng}&travelmode=driving`;
+                        window.open(url, '_blank');
+                    },
+                    (error) => {
+                        // If location access denied, just open destination
+                        const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+                        window.open(url, '_blank');
+                    }
+                );
+            } else {
+                // Fallback if geolocation not supported
+                const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+                window.open(url, '_blank');
+            }
+        }
+
+        function viewOnGoogleMaps(lat, lng, name) {
+            // Open full Google Maps page with place details (photos, reviews, etc)
+            const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}+${lat},${lng}`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
