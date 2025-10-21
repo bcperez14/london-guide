@@ -77,6 +77,19 @@
             align-items: center;
             margin-bottom: 8px;
             font-size: 13px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .legend-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .legend-item.active {
+            background: #e3f2fd;
+            font-weight: bold;
         }
         
         .legend-color {
@@ -151,7 +164,7 @@
         .google-link {
             display: inline-block;
             background: #4285f4;
-            color: white;
+            color: white !important;
             padding: 8px 15px;
             border-radius: 5px;
             text-decoration: none;
@@ -161,6 +174,12 @@
         
         .google-link:hover {
             background: #357ae8;
+            color: white !important;
+            text-decoration: none;
+        }
+        
+        .google-link:visited {
+            color: white !important;
         }
     </style>
 </head>
@@ -277,25 +296,30 @@
             }
             
             marker.bindPopup(popupContent);
+            
+            // Open popup on hover
+            marker.on('mouseover', function(e) {
+                this.openPopup();
+            });
         });
 
         const legend = L.control({position: 'bottomright'});
         legend.onAdd = function(map) {
             const div = L.DomUtil.create('div', 'legend');
-            div.innerHTML = '<h4>Categories</h4>';
+            div.innerHTML = '<h4>Categories (Click to Filter)</h4>';
             
             const categories = [
-                {name: 'Landmarks', color: colors.landmarks},
-                {name: 'Black Culture', color: colors.culture},
-                {name: 'Arts & Museums', color: colors.arts},
-                {name: 'Fine Dining', color: colors.dining},
-                {name: 'Shopping & Beauty', color: colors.shopping},
-                {name: 'Fashion', color: colors.fashion}
+                {name: 'Landmarks', color: colors.landmarks, key: 'landmarks'},
+                {name: 'Black Culture', color: colors.culture, key: 'culture'},
+                {name: 'Arts & Museums', color: colors.arts, key: 'arts'},
+                {name: 'Fine Dining', color: colors.dining, key: 'dining'},
+                {name: 'Shopping & Beauty', color: colors.shopping, key: 'shopping'},
+                {name: 'Fashion', color: colors.fashion, key: 'fashion'}
             ];
             
             categories.forEach(cat => {
                 div.innerHTML += `
-                    <div class="legend-item">
+                    <div class="legend-item" data-category="${cat.key}" onclick="toggleCategory('${cat.key}')">
                         <div class="legend-color" style="background-color: ${cat.color};"></div>
                         <span>${cat.name}</span>
                     </div>
@@ -305,6 +329,65 @@
             return div;
         };
         legend.addTo(map);
+
+        // Store all markers by category
+        const markersByCategory = {};
+        let activeFilters = new Set();
+
+        // Group markers by category
+        locations.forEach(location => {
+            if (!markersByCategory[location.category]) {
+                markersByCategory[location.category] = [];
+            }
+        });
+
+        function toggleCategory(category) {
+            const legendItem = document.querySelector(`[data-category="${category}"]`);
+            
+            if (activeFilters.has(category)) {
+                // Deactivate filter
+                activeFilters.delete(category);
+                legendItem.classList.remove('active');
+            } else {
+                // Activate filter
+                activeFilters.add(category);
+                legendItem.classList.add('active');
+            }
+            
+            // Update marker visibility
+            updateMarkerVisibility();
+        }
+
+        function updateMarkerVisibility() {
+            map.eachLayer(function(layer) {
+                if (layer instanceof L.Marker) {
+                    // Find which category this marker belongs to
+                    let markerCategory = null;
+                    for (let i = 0; i < locations.length; i++) {
+                        const loc = locations[i];
+                        const markerLatLng = layer.getLatLng();
+                        if (Math.abs(markerLatLng.lat - loc.lat) < 0.0001 && 
+                            Math.abs(markerLatLng.lng - loc.lng) < 0.0001) {
+                            markerCategory = loc.category;
+                            break;
+                        }
+                    }
+                    
+                    if (markerCategory) {
+                        if (activeFilters.size === 0) {
+                            // No filters active, show all
+                            layer.setOpacity(1);
+                        } else if (activeFilters.has(markerCategory)) {
+                            // Category is selected, show highlighted
+                            layer.setOpacity(1);
+                        } else {
+                            // Category not selected, dim
+                            layer.setOpacity(0.2);
+                        }
+                    }
+                }
+            });
+        }
 
         function downloadMap() {
             const mapElement = document.getElementById('map');
